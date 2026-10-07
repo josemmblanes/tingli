@@ -51,6 +51,9 @@
   </div>
 </div>
 
+<!-- Botón de prueba de voz añadido -->
+<button id="btnPreview" class="sec" style="margin-top:8px;">🔊 Probar voz elegida</button>
+
 <label for="limite">Máximo de palabras en esta tanda (0 = todas)</label>
 <input type="number" id="limite" min="0" value="10">
 
@@ -199,6 +202,30 @@ async function synth(word, p, voice) {
   return blob;
 }
 
+// ---- Vista previa de voz ----
+$("btnPreview").onclick = async () => {
+  if (running) return;
+  if (!(await puterReady)) return log(PUTER_MSG, true);
+  
+  const p = $("proveedor").value, voice = $("voz").value;
+  const sampleText = "你好，很高兴认识你。"; // Frase de muestra: "Hola, encantado de conocerte"
+  
+  $("btnPreview").disabled = true;
+  log(`🔊 Generando vista previa con la voz [${voice}]...`);
+  
+  try {
+    const audio = await puter.ai.txt2speech(sampleText, optionsFor(p, voice));
+    if (audio) {
+      audio.play();
+      log("♪ Reproduciendo muestra.");
+    }
+  } catch (e) {
+    log("✗ Error en la vista previa: " + errText(e), true);
+  } finally {
+    $("btnPreview").disabled = false;
+  }
+};
+
 // ---- Proceso principal ----
 $("btnStart").onclick = async () => {
   if (running) return;
@@ -228,7 +255,7 @@ $("btnStart").onclick = async () => {
   if (!batch.length) return log("No hay nada nuevo que generar.");
 
   running = true; stopFlag = false;
-  $("btnStart").disabled = true; $("btnStop").disabled = false;
+  $("btnStart").disabled = true; $("btnStop").disabled = false; $("btnPreview").disabled = true;
   let done = 0, failed = 0, firstType = true, idx = 0;
 
   const update = () => {
@@ -265,7 +292,7 @@ $("btnStart").onclick = async () => {
   await Promise.all([worker(), worker()]);   // 2 peticiones en paralelo
 
   running = false;
-  $("btnStart").disabled = false; $("btnStop").disabled = true;
+  $("btnStart").disabled = false; $("btnStop").disabled = true; $("btnPreview").disabled = false;
   if (!dirHandle) $("btnZip").disabled = zipFiles.size === 0;
   log(stopFlag ? "Detenido." : "Tanda terminada.");
 };
